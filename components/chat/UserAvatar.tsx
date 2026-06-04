@@ -24,7 +24,10 @@ const statusColor: Record<UserStatus, string> = {
 
 export function UserAvatar({ user, size = 'md', showStatus = false, className = '' }: UserAvatarProps) {
   const { avatar, font, dot, dotBorder } = sizeMap[size];
-  const initials = user.displayName
+  const safeDisplayName = user.displayName || user.username || '?';
+  const safeColor = user.avatarColor || '#6c63ff';
+
+  const initials = safeDisplayName
     .split(' ')
     .slice(0, 2)
     .map(n => n[0])
@@ -38,7 +41,7 @@ export function UserAvatar({ user, size = 'md', showStatus = false, className = 
           width: avatar,
           height: avatar,
           borderRadius: '50%',
-          background: `linear-gradient(135deg, ${user.avatarColor}cc, ${user.avatarColor})`,
+          background: `linear-gradient(135deg, ${safeColor}cc, ${safeColor})`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -87,33 +90,37 @@ export function GroupAvatar({ users, size = 'md' }: GroupAvatarProps) {
 
   return (
     <div style={{ position: 'relative', width: total, height: avatar, flexShrink: 0 }}>
-      {displayed.map((u, i) => (
-        <div
-          key={u.id}
-          style={{
-            position: 'absolute',
-            bottom: i === 0 ? 0 : undefined,
-            top: i === 1 ? 0 : undefined,
-            left: i === 0 ? 0 : undefined,
-            right: i === 1 ? 0 : undefined,
-            width: smallSize,
-            height: smallSize,
-            borderRadius: '50%',
-            background: `linear-gradient(135deg, ${u.avatarColor}cc, ${u.avatarColor})`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: Math.round(smallSize * 0.37),
-            fontWeight: 700,
-            color: '#fff',
-            border: '2px solid var(--bg-surface)',
-            userSelect: 'none',
-            zIndex: i === 1 ? 1 : 0,
-          }}
-        >
-          {u.displayName[0].toUpperCase()}
-        </div>
-      ))}
+      {displayed.map((u, i) => {
+        const safeName = u.displayName || u.username || '?';
+        const safeColor = u.avatarColor || '#6c63ff';
+        return (
+          <div
+            key={u.id}
+            style={{
+              position: 'absolute',
+              bottom: i === 0 ? 0 : undefined,
+              top: i === 1 ? 0 : undefined,
+              left: i === 0 ? 0 : undefined,
+              right: i === 1 ? 0 : undefined,
+              width: smallSize,
+              height: smallSize,
+              borderRadius: '50%',
+              background: `linear-gradient(135deg, ${safeColor}cc, ${safeColor})`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: Math.round(smallSize * 0.37),
+              fontWeight: 700,
+              color: '#fff',
+              border: '2px solid var(--bg-surface)',
+              userSelect: 'none',
+              zIndex: i === 1 ? 1 : 0,
+            }}
+          >
+            {safeName[0].toUpperCase()}
+          </div>
+        );
+      })}
     </div>
   );
 }
