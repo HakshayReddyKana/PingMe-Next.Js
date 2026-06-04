@@ -31,7 +31,6 @@ export function InfoPanel({ className = '', conversation, me, onClose }: InfoPan
     <aside
       className={`animate-slide-in-right ${className}`}
       style={{
-      style={{
         width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 'var(--info-w)',
         flexShrink: 0,
         display: 'flex',
