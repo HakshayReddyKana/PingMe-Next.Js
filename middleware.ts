@@ -28,6 +28,8 @@ export async function middleware(request: NextRequest) {
         headers: {
           ...Object.fromEntries(request.headers),
           host: new URL(backendUrl).host,
+          'x-forwarded-host': request.nextUrl.host,
+          'x-forwarded-proto': request.nextUrl.protocol.replace(':', ''),
         },
         body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.text() : undefined,
         redirect: 'manual',
