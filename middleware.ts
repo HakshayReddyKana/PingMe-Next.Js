@@ -5,6 +5,14 @@ export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
 
+    // Fast-path early return for routes we don't care about
+    if (!pathname.startsWith('/oauth2/') && 
+        !pathname.startsWith('/login/oauth2/') && 
+        pathname !== '/' && 
+        !pathname.startsWith('/dashboard')) {
+      return NextResponse.next();
+    }
+
     // Handle OAuth2 and login proxying
     if (pathname.startsWith('/oauth2/') || pathname.startsWith('/login/oauth2/')) {
       const backendUrl = process.env.BACKEND_URL;
@@ -80,6 +88,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Match OAuth routes, page routes, exclude API routes and auth callback page
-  matcher: ['/oauth2/:path*', '/login/oauth2/:path*', '/', '/dashboard/:path*'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };
