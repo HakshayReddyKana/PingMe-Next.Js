@@ -10,6 +10,7 @@ const MAX_WIDTH = 520;
 const DEFAULT_WIDTH = 300;
 
 interface SidebarProps {
+  className?: string;
   me: ChatUser;
   conversations: Conversation[];
   activeId: string | null;
@@ -19,6 +20,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({
+  className = '',
   me,
   conversations,
   activeId,
@@ -68,8 +70,9 @@ export function Sidebar({
 
   return (
     <aside
+      className={className}
       style={{
-        width,
+        width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : width,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
@@ -207,6 +210,7 @@ export function Sidebar({
 
       {/* ── Resize handle ── */}
       <div
+        className="hidden md:flex"
         onMouseDown={onMouseDown}
         title="Drag to resize"
         style={{
@@ -217,7 +221,6 @@ export function Sidebar({
           height: '100%',
           cursor: 'col-resize',
           zIndex: 10,
-          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -263,6 +266,7 @@ export function Sidebar({
 
       {/* Wider invisible hover zone to make grabbing easy */}
       <div
+        className="hidden md:block"
         onMouseDown={onMouseDown}
         style={{
           position: 'absolute',

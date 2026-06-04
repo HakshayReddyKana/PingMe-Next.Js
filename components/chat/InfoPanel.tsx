@@ -5,6 +5,7 @@ import { UserAvatar } from './UserAvatar';
 import { getConversationName } from '@/lib/utils';
 
 interface InfoPanelProps {
+  className?: string;
   conversation: Conversation;
   me: ChatUser;
   onClose: () => void;
@@ -21,16 +22,17 @@ const statusColor: Record<ChatUser['status'], string> = {
   offline: 'var(--offline)',
 };
 
-export function InfoPanel({ conversation, me, onClose }: InfoPanelProps) {
+export function InfoPanel({ className = '', conversation, me, onClose }: InfoPanelProps) {
   const name = getConversationName(conversation, me.id);
   const isGroup = conversation.type === 'group';
   const members = conversation.participants;
 
   return (
     <aside
-      className="animate-slide-in-right"
+      className={`animate-slide-in-right ${className}`}
       style={{
-        width: 'var(--info-w)',
+      style={{
+        width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 'var(--info-w)',
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',

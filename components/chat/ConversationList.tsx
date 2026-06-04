@@ -20,9 +20,9 @@ export function ConversationList({ conversations, me, activeId, onSelect }: Conv
     if (!query.trim()) return conversations;
     const q = query.toLowerCase();
     return conversations.filter(c => {
-      const name = getConversationName(c, me.id).toLowerCase();
-      const lastMsg = c.lastMessage?.content.toLowerCase() ?? '';
-      return name.includes(q) || lastMsg.includes(q);
+      const name = getConversationName(c, me.id) || '';
+      const lastMsg = c.lastMessage?.content || '';
+      return name.toLowerCase().includes(q) || lastMsg.toLowerCase().includes(q);
     });
   }, [conversations, me, query]);
 

@@ -9,9 +9,10 @@ interface ChatHeaderProps {
   me: ChatUser;
   isInfoOpen: boolean;
   onToggleInfo: () => void;
+  onBack?: () => void;
 }
 
-export function ChatHeader({ conversation, me, isInfoOpen, onToggleInfo }: ChatHeaderProps) {
+export function ChatHeader({ conversation, me, isInfoOpen, onToggleInfo, onBack }: ChatHeaderProps) {
   const name = getConversationName(conversation, me.id);
   const isGroup = conversation.type === 'group';
 
@@ -46,6 +47,17 @@ export function ChatHeader({ conversation, me, isInfoOpen, onToggleInfo }: ChatH
         flexShrink: 0,
       }}
     >
+      {/* Mobile Back Button */}
+      {onBack && (
+        <div className="md:hidden">
+          <HeaderIconButton title="Back to chats" onClick={onBack}>
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </HeaderIconButton>
+        </div>
+      )}
+
       {/* Avatar */}
       {isGroup ? (
         <GroupAvatar

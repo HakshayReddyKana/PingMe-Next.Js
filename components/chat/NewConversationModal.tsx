@@ -21,13 +21,14 @@ export function NewConversationModal({ allUsers, me, onClose, onCreate }: NewCon
     [allUsers, me.id]
   );
 
-  const filtered = useMemo(() =>
-    others.filter(u =>
-      u.displayName.toLowerCase().includes(query.toLowerCase()) ||
-      u.username.toLowerCase().includes(query.toLowerCase())
-    ),
-    [others, query]
-  );
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase();
+    return others.filter(u => {
+      const d = u.displayName || u.username || '';
+      const n = u.username || '';
+      return d.toLowerCase().includes(q) || n.toLowerCase().includes(q);
+    });
+  }, [others, query]);
 
   const isGroup = selected.length > 1;
 

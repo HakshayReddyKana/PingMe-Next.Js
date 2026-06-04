@@ -383,16 +383,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100dvh',
-        overflow: 'hidden',
-        background: 'var(--bg-base)',
-      }}
-    >
+    <div className="flex h-[100dvh] overflow-hidden bg-[var(--bg-base)]">
       {/* Sidebar */}
       <Sidebar
+        className={`${activeId ? 'hidden md:flex' : 'flex w-full'} md:w-auto flex-shrink-0`}
         me={me}
         conversations={conversations}
         activeId={activeId}
@@ -402,15 +396,7 @@ export default function DashboardPage() {
       />
 
       {/* Main area */}
-      <main
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-          overflow: 'hidden',
-        }}
-      >
+      <main className={`${!activeId ? 'hidden md:flex' : 'flex w-full'} flex-col min-w-0 overflow-hidden flex-1`}>
         {activeConversation ? (
           <>
             <ChatHeader
@@ -418,6 +404,7 @@ export default function DashboardPage() {
               me={me}
               isInfoOpen={isInfoOpen}
               onToggleInfo={() => setIsInfoOpen(v => !v)}
+              onBack={() => setActiveId(null)}
             />
             <div
               style={{
@@ -448,6 +435,7 @@ export default function DashboardPage() {
       {/* Info panel */}
       {isInfoOpen && activeConversation && (
         <InfoPanel
+          className="fixed inset-0 z-50 md:relative md:inset-auto md:z-auto"
           conversation={activeConversation}
           me={me}
           onClose={() => setIsInfoOpen(false)}
