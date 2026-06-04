@@ -70,12 +70,10 @@ export function Sidebar({
 
   return (
     <aside
-      className={className}
+      className={`flex-col ${className}`}
       style={{
         width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : width,
         flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
         height: '100%',
         background: 'var(--bg-surface)',
         borderRight: 'none',

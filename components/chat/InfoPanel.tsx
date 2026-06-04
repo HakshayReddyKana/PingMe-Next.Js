@@ -29,12 +29,10 @@ export function InfoPanel({ className = '', conversation, me, onClose }: InfoPan
 
   return (
     <aside
-      className={`animate-slide-in-right ${className}`}
+      className={`flex-col animate-slide-in-right ${className}`}
       style={{
         width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 'var(--info-w)',
         flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
         height: '100%',
         background: 'var(--bg-surface)',
         borderLeft: '1px solid var(--border)',
