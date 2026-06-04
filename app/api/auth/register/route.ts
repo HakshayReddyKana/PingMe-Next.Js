@@ -31,10 +31,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await response.json();
+    // Safely parse the response, handling empty bodies
+    const text = await response.text();
+    const user = text ? JSON.parse(text) : {};
 
     return NextResponse.json(
-      { message: 'Registration successful', username: user.username },
+      { message: 'Registration successful', username: user.username || username },
       { status: 201 }
     );
   } catch (error) {
