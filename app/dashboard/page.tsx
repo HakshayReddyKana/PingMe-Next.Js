@@ -157,7 +157,7 @@ export default function DashboardPage() {
         const newMsg = normaliseMessage(body);
 
         // If we are actively looking at this chat and receive a message from someone else, auto-read!
-        if (activeIdRef.current === conv.id && newMsg.senderId !== me.id) {
+        if (activeIdRef.current === conv.id && newMsg.senderId !== me.id && document.hasFocus()) {
           markAsRead(conv.id).catch(console.error);
         }
 
@@ -248,6 +248,31 @@ export default function DashboardPage() {
       mounted = false;
     };
   }, [activeId, me]);
+
+  // ── Visibility & Focus Handling (Read Receipts & Presence) ──
+  useEffect(() => {
+    if (!me) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // We just came back to the tab. Mark active conversation as read.
+        if (activeIdRef.current) {
+          markAsRead(activeIdRef.current).catch(console.error);
+          setConversations(prev =>
+            prev.map(c => c.id === activeIdRef.current ? { ...c, unreadCount: 0 } : c)
+          );
+        }
+        // Tell backend we are online
+        ws.send('/app/chat/presence', { status: 'online' });
+      } else {
+        // We switched tabs. Tell backend we are away.
+        ws.send('/app/chat/presence', { status: 'away' });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [me]);
 
   // ── Typing Indicator ─────────────────────────────────────────
   const [typingNames, setTypingNames] = useState<string[]>([]);

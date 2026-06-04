@@ -16,15 +16,23 @@ interface ConversationListProps {
 export function ConversationList({ conversations, me, activeId, onSelect }: ConversationListProps) {
   const [query, setQuery] = useState('');
 
+  const sortedConversations = useMemo(() => {
+    return [...conversations].sort((a, b) => {
+      const aTime = a.lastMessage ? new Date(a.lastMessage.timestamp).getTime() : new Date(a.createdAt).getTime();
+      const bTime = b.lastMessage ? new Date(b.lastMessage.timestamp).getTime() : new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    });
+  }, [conversations]);
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return conversations;
+    if (!query.trim()) return sortedConversations;
     const q = query.toLowerCase();
-    return conversations.filter(c => {
+    return sortedConversations.filter(c => {
       const name = getConversationName(c, me.id) || '';
       const lastMsg = c.lastMessage?.content || '';
       return name.toLowerCase().includes(q) || lastMsg.toLowerCase().includes(q);
     });
-  }, [conversations, me, query]);
+  }, [sortedConversations, me, query]);
 
   const pinned = filtered.filter(c => c.isPinned);
   const unpinned = filtered.filter(c => !c.isPinned);
