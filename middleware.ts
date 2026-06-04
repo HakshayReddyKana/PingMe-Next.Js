@@ -35,19 +35,25 @@ export async function middleware(request: NextRequest) {
         redirect: 'manual',
       });
 
-      // If it's a redirect, update the location header
+      // If it's a redirect, update the location header AND preserve Set-Cookie headers
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
         if (location) {
+          const nextRes = new NextResponse(null, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          });
+
           const backendHost = new URL(backendUrl).host;
           const redirectUrl = new URL(location, backendUrl);
 
           if (redirectUrl.host === backendHost) {
-            return NextResponse.redirect(
-              new URL(redirectUrl.pathname + redirectUrl.search, request.url)
-            );
+            nextRes.headers.set('location', new URL(redirectUrl.pathname + redirectUrl.search, request.url).toString());
+          } else {
+            nextRes.headers.set('location', location);
           }
-          return NextResponse.redirect(location);
+          return nextRes;
         }
       }
 
