@@ -462,18 +462,31 @@ export default function DashboardPage() {
       await fetchApi(`/api/users/${userId}/block`, { method: 'POST' }).catch(err => {
         console.warn('Backend not ready for blocking yet, mocking success locally.');
       });
-      // Locally remove any conversations with this blocked user
-      setConversations(prev => prev.filter(c => 
-        !(c.type === 'direct' && c.participants.some(p => p.id === userId))
-      ));
-      if (activeConversation?.type === 'direct' && activeConversation.participants.some(p => p.id === userId)) {
-        setActiveId(null);
-        setIsInfoOpen(false);
-      }
+      // Just update local blocked state, do NOT remove the conversation
+      setMe(prev => prev ? { ...prev, blockedUsers: [...(prev.blockedUsers || []), { id: userId }] } as any : prev);
+      setIsInfoOpen(false);
     } catch (err) {
       console.error('Failed to block user:', err);
     }
   };
+
+  const handleUnblockUser = async (userId: string) => {
+    try {
+      await fetchApi(`/api/users/${userId}/unblock`, { method: 'POST' }).catch(err => {
+        console.warn('Backend not ready for unblocking yet, mocking success locally.');
+      });
+      setMe(prev => prev ? { ...prev, blockedUsers: prev.blockedUsers?.filter((u: any) => String(u.id) !== String(userId)) } as any : prev);
+    } catch (err) {
+      console.error('Failed to unblock user:', err);
+    }
+  };
+
+  const isOtherUserBlockedByMe = useMemo(() => {
+    if (activeConversation?.type !== 'direct' || !me) return false;
+    const otherUser = activeConversation.participants.find(p => p.id !== me.id) || activeConversation.pendingParticipants?.find(p => p.id !== me.id);
+    if (!otherUser) return false;
+    return (me as any).blockedUsers?.some((b: any) => String(b.id) === String(otherUser.id));
+  }, [activeConversation, me]);
 
   // ─────────────────────────────────────────────────────────────
   if (error) {
@@ -569,7 +582,19 @@ export default function DashboardPage() {
                 me={me}
                 typingNames={typingNames}
               />
-              {activeConversation.pendingParticipants?.some(p => p.id === me.id) ? (
+              {isOtherUserBlockedByMe ? (
+                <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border)', textAlign: 'center', zIndex: 10 }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 12 }}>You blocked this contact.</div>
+                  <button 
+                    onClick={() => {
+                      const otherUser = activeConversation.participants.find(p => p.id !== me.id) || activeConversation.pendingParticipants?.find(p => p.id !== me.id);
+                      if (otherUser) handleUnblockUser(otherUser.id);
+                    }} 
+                    style={{ padding: '8px 20px', background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border-focus)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>
+                    Unblock
+                  </button>
+                </div>
+              ) : activeConversation.pendingParticipants?.some(p => p.id === me.id) ? (
                 <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border)', textAlign: 'center', zIndex: 10 }}>
                   <div>
                     <div style={{ marginBottom: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -578,7 +603,11 @@ export default function DashboardPage() {
                     <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                       <button onClick={() => handleRequestAction(activeConversation.id, 'accept')} style={{ padding: '8px 20px', background: 'var(--accent)', color: 'white', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 600 }}>Accept</button>
                       <button onClick={() => handleRequestAction(activeConversation.id, 'reject')} style={{ padding: '8px 20px', background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border-focus)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject</button>
-                      <button onClick={() => handleRequestAction(activeConversation.id, 'block')} style={{ padding: '8px 20px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject & Block</button>
+                      <button onClick={() => {
+                         const otherUser = activeConversation.participants.find(p => p.id !== me.id) || activeConversation.pendingParticipants?.find(p => p.id !== me.id);
+                         if (otherUser) handleBlockUser(otherUser.id);
+                         handleRequestAction(activeConversation.id, 'reject');
+                      }} style={{ padding: '8px 20px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject & Block</button>
                     </div>
                   </div>
                 </div>
