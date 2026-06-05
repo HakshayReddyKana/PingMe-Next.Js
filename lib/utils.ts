@@ -35,13 +35,15 @@ export function isSameDay(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString();
 }
 
-export function getConversationName(conv: { type: string; name?: string; participants: Array<{ id: string; displayName: string }> }, meId: string): string {
+export function getConversationName(conv: { type: string; name?: string; participants: Array<{ id: string; displayName: string }>; pendingParticipants?: Array<{ id: string; displayName: string }> }, meId: string): string {
   if (conv.type === 'group') return conv.name ?? 'Group';
-  const other = conv.participants.find(p => p.id !== meId);
+  const allUsers = [...(conv.participants || []), ...(conv.pendingParticipants || [])];
+  const other = allUsers.find(p => String(p.id) !== String(meId));
   return other?.displayName ?? 'Unknown';
 }
 
-export function getConversationOtherUser<T extends { id: string }>(conv: { type: string; participants: T[] }, meId: string): T | null {
+export function getConversationOtherUser<T extends { id: string | number }>(conv: { type: string; participants: T[]; pendingParticipants?: T[] }, meId: string): T | null {
   if (conv.type === 'group') return null;
-  return conv.participants.find(p => p.id !== meId) ?? null;
+  const allUsers = [...(conv.participants || []), ...(conv.pendingParticipants || [])];
+  return allUsers.find(p => String(p.id) !== String(meId)) ?? null;
 }
