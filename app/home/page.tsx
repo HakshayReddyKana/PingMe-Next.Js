@@ -369,6 +369,19 @@ export default function DashboardPage() {
     return activeMessages.filter(m => m.content.toLowerCase().includes(q));
   }, [activeMessages, searchQuery, isSearchOpen]);
 
+  // Close search on click outside
+  const headerContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (isSearchOpen && headerContainerRef.current && !headerContainerRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSearchOpen]);
+
   const handleCreateConversation = useCallback(async (userIds: string[], groupName?: string) => {
     try {
       const type = userIds.length > 1 ? 'group' : 'direct';
@@ -398,7 +411,15 @@ export default function DashboardPage() {
       });
       
       if (action === 'accept') {
-        setConversations(prev => prev.map(c => c.id === convId ? { ...c, status: 'accepted' } : c));
+        setConversations(prev => prev.map(c => {
+          if (c.id === convId) {
+            const mePending = c.pendingParticipants?.find(p => p.id === me?.id);
+            const newPending = c.pendingParticipants?.filter(p => p.id !== me?.id) || [];
+            const newParticipants = mePending ? [...c.participants, mePending] : c.participants;
+            return { ...c, pendingParticipants: newPending, participants: newParticipants };
+          }
+          return c;
+        }));
       } else {
         setConversations(prev => prev.filter(c => c.id !== convId));
         setActiveId(null);
@@ -470,39 +491,41 @@ export default function DashboardPage() {
       <main className={`${!activeId ? 'hidden md:flex' : 'flex w-full'} flex-col min-w-0 overflow-hidden flex-1`}>
         {activeConversation ? (
           <>
+            <div ref={headerContainerRef} style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
               <ChatHeader
-              conversation={activeConversation}
-              me={me}
-              isInfoOpen={isInfoOpen}
-              onToggleInfo={() => setIsInfoOpen(v => !v)}
-              isSearchOpen={isSearchOpen}
-              onSearchToggle={() => {
-                setIsSearchOpen(v => !v);
-                if (isSearchOpen) setSearchQuery(''); // Clear on close
-              }}
-              onBack={() => setActiveId(null)}
-            />
-            {isSearchOpen && (
-              <div style={{ padding: '10px 16px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
-                <input
-                  type="text"
-                  placeholder="Search in conversation..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border-focus)',
-                    background: 'var(--bg-overlay)',
-                    color: 'var(--text-primary)',
-                    outline: 'none',
-                    fontSize: 14
-                  }}
-                />
-              </div>
-            )}
+                conversation={activeConversation}
+                me={me}
+                isInfoOpen={isInfoOpen}
+                onToggleInfo={() => setIsInfoOpen(v => !v)}
+                isSearchOpen={isSearchOpen}
+                onSearchToggle={() => {
+                  setIsSearchOpen(v => !v);
+                  if (isSearchOpen) setSearchQuery(''); // Clear on close
+                }}
+                onBack={() => setActiveId(null)}
+              />
+              {isSearchOpen && (
+                <div style={{ padding: '10px 16px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
+                  <input
+                    type="text"
+                    placeholder="Search in conversation..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    autoFocus
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--border-focus)',
+                      background: 'var(--bg-overlay)',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                      fontSize: 14
+                    }}
+                  />
+                </div>
+              )}
+            </div>
             <div
               style={{
                 flex: 1,
@@ -518,20 +541,22 @@ export default function DashboardPage() {
                 me={me}
                 typingNames={typingNames}
               />
-              {activeConversation.status === 'pending' ? (
+              {activeConversation.pendingParticipants?.some(p => p.id === me.id) ? (
                 <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border)', textAlign: 'center', zIndex: 10 }}>
-                  {activeConversation.initiatorId === me.id ? (
-                    <div style={{ color: 'var(--text-muted)', fontSize: 14, fontWeight: 500 }}>Waiting for user to accept...</div>
-                  ) : (
-                    <div>
-                      <div style={{ marginBottom: 16, fontWeight: 600, color: 'var(--text-primary)' }}>This user wants to chat with you</div>
-                      <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                        <button onClick={() => handleRequestAction(activeConversation.id, 'accept')} style={{ padding: '8px 20px', background: 'var(--accent)', color: 'white', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 600 }}>Accept</button>
-                        <button onClick={() => handleRequestAction(activeConversation.id, 'reject')} style={{ padding: '8px 20px', background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border-focus)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject</button>
-                        <button onClick={() => handleRequestAction(activeConversation.id, 'block')} style={{ padding: '8px 20px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject & Block</button>
-                      </div>
+                  <div>
+                    <div style={{ marginBottom: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      You have been invited to this {activeConversation.type === 'group' ? 'group' : 'chat'}
                     </div>
-                  )}
+                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                      <button onClick={() => handleRequestAction(activeConversation.id, 'accept')} style={{ padding: '8px 20px', background: 'var(--accent)', color: 'white', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 600 }}>Accept</button>
+                      <button onClick={() => handleRequestAction(activeConversation.id, 'reject')} style={{ padding: '8px 20px', background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border-focus)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject</button>
+                      <button onClick={() => handleRequestAction(activeConversation.id, 'block')} style={{ padding: '8px 20px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject & Block</button>
+                    </div>
+                  </div>
+                </div>
+              ) : activeConversation.type === 'direct' && activeConversation.pendingParticipants && activeConversation.pendingParticipants.length > 0 ? (
+                <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border)', textAlign: 'center', zIndex: 10 }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 14, fontWeight: 500 }}>Waiting for user to accept...</div>
                 </div>
               ) : (
                 <MessageInput

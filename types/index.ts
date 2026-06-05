@@ -55,7 +55,7 @@ export interface Conversation {
   isPinned?: boolean;
   isMuted?: boolean;
   createdAt: Date;
-  status?: 'pending' | 'accepted' | 'rejected';
+  pendingParticipants?: ChatUser[];
   initiatorId?: string;
 }
 
