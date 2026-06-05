@@ -204,6 +204,22 @@ export default function DashboardPage() {
       unsubs.push(unsubReceipts);
     });
 
+    // ── Subscribe to NEW conversations created by others ──
+    const unsubNewConv = ws.subscribe(`/topic/user/${me.id}/conversations`, (body: any) => {
+      if (!mounted) return;
+      // We receive a ConversationDTO
+      const newConv = body as Conversation;
+      // Convert string dates to Date objects if necessary
+      if (typeof newConv.createdAt === 'string') {
+        newConv.createdAt = new Date(newConv.createdAt);
+      }
+      setConversations(prev => {
+        if (prev.some(c => c.id === newConv.id)) return prev;
+        return [newConv, ...prev];
+      });
+    });
+    unsubs.push(unsubNewConv);
+
     return () => {
       mounted = false;
       unsubs.forEach(fn => fn());
