@@ -204,27 +204,39 @@ export default function DashboardPage() {
       unsubs.push(unsubReceipts);
     });
 
-    // ── Subscribe to NEW conversations created by others ──
-    const unsubNewConv = ws.subscribe(`/topic/user/${me.id}/conversations`, (body: any) => {
-      if (!mounted) return;
-      // We receive a ConversationDTO
-      const newConv = body as Conversation;
-      // Convert string dates to Date objects if necessary
-      if (typeof newConv.createdAt === 'string') {
-        newConv.createdAt = new Date(newConv.createdAt);
-      }
-      setConversations(prev => {
-        if (prev.some(c => c.id === newConv.id)) return prev;
-        return [newConv, ...prev];
-      });
-    });
-    unsubs.push(unsubNewConv);
-
     return () => {
       mounted = false;
       unsubs.forEach(fn => fn());
     };
   }, [me, conversations.map(c => c.id).join(',')]); // Re-subscribe only if conversation list changes
+
+  // ── Subscribe to NEW or UPDATED conversations (e.g. accepted invites) ──
+  useEffect(() => {
+    if (!me) return;
+    let mounted = true;
+
+    const unsubNewConv = ws.subscribe(`/topic/user/${me.id}/conversations`, (body: any) => {
+      if (!mounted) return;
+      const newConv = body as Conversation;
+      if (typeof newConv.createdAt === 'string') {
+        newConv.createdAt = new Date(newConv.createdAt);
+      }
+      setConversations(prev => {
+        const exists = prev.some(c => c.id === newConv.id);
+        if (exists) {
+          // If it exists, update it (useful for when a pending request is accepted!)
+          return prev.map(c => c.id === newConv.id ? { ...c, ...newConv } : c);
+        }
+        // If it's brand new, add it to the top
+        return [newConv, ...prev];
+      });
+    });
+
+    return () => {
+      mounted = false;
+      unsubNewConv();
+    };
+  }, [me]);
 
   // Sync presence to conversations so sidebar updates
   useEffect(() => {
