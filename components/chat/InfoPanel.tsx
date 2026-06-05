@@ -197,6 +197,63 @@ export function InfoPanel({ className = '', conversation, me, onClose, onBlock }
         </div>
       </div>
 
+      {/* Pending Members section */}
+      {conversation.pendingParticipants && conversation.pendingParticipants.length > 0 && (
+        <div style={{ padding: '8px 16px', flexShrink: 0 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              marginBottom: 10,
+            }}
+          >
+            Pending ({conversation.pendingParticipants.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {conversation.pendingParticipants.map(member => (
+              <div
+                key={member.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '6px 8px',
+                  borderRadius: 10,
+                  opacity: 0.6, // Dim to show they are pending
+                }}
+              >
+                <UserAvatar user={member} size="sm" />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {member.displayName}
+                    {member.id === me.id && (
+                      <span style={{ fontSize: 10, color: 'var(--accent)', marginLeft: 6, fontWeight: 700 }}>
+                        YOU
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    Invited
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div style={{ padding: '16px', marginTop: 'auto', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <ActionButton icon="🔇" label={conversation.isMuted ? 'Unmute' : 'Mute notifications'} />
