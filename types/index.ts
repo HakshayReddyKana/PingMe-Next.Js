@@ -26,6 +26,7 @@ export interface ChatUser {
   status: UserStatus;
   lastSeen?: Date;
   bio?: string;
+  blockedUsers?: { id: string }[];
 }
 
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
