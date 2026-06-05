@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
     if (!pathname.startsWith('/oauth2/') && 
         !pathname.startsWith('/login/oauth2/') && 
         pathname !== '/' && 
-        !pathname.startsWith('/dashboard')) {
+        !pathname.startsWith('/home')) {
       return NextResponse.next();
     }
 
@@ -77,13 +77,13 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Redirect to dashboard if already authenticated and trying to access login page
+    // Redirect to home if already authenticated and trying to access login page
     if (authToken && pathname === '/') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/home', request.url));
     }
 
     // Redirect to login if not authenticated and trying to access protected routes
-    if (!authToken && pathname.startsWith('/dashboard')) {
+    if (!authToken && pathname.startsWith('/home')) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 

@@ -358,6 +358,16 @@ export default function DashboardPage() {
   // ── UI States ────────────────────────────────────────────────
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // ── Message Search ───────────────────────────────────────────
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const displayMessages = useMemo(() => {
+    if (!searchQuery.trim() || !isSearchOpen) return activeMessages;
+    const q = searchQuery.toLowerCase();
+    return activeMessages.filter(m => m.content.toLowerCase().includes(q));
+  }, [activeMessages, searchQuery, isSearchOpen]);
 
   const handleCreateConversation = useCallback(async (userIds: string[], groupName?: string) => {
     try {
@@ -379,6 +389,42 @@ export default function DashboardPage() {
     await fetchApi(API_ENDPOINTS.LOGOUT, { method: 'POST' });
     router.push('/');
   }, [router]);
+
+  const handleRequestAction = async (convId: string, action: 'accept' | 'reject' | 'block') => {
+    try {
+      // Temporarily mock the backend call until user implements it
+      await fetchApi(`/api/conversations/${convId}/${action}`, { method: 'POST' }).catch(err => {
+        console.warn('Backend not ready for this endpoint yet, mocking success locally.');
+      });
+      
+      if (action === 'accept') {
+        setConversations(prev => prev.map(c => c.id === convId ? { ...c, status: 'accepted' } : c));
+      } else {
+        setConversations(prev => prev.filter(c => c.id !== convId));
+        setActiveId(null);
+      }
+    } catch (err) {
+      console.error(`Failed to ${action} request:`, err);
+    }
+  };
+
+  const handleBlockUser = async (userId: string) => {
+    try {
+      await fetchApi(`/api/users/${userId}/block`, { method: 'POST' }).catch(err => {
+        console.warn('Backend not ready for blocking yet, mocking success locally.');
+      });
+      // Locally remove any conversations with this blocked user
+      setConversations(prev => prev.filter(c => 
+        !(c.type === 'direct' && c.participants.some(p => p.id === userId))
+      ));
+      if (activeConversation?.type === 'direct' && activeConversation.participants.some(p => p.id === userId)) {
+        setActiveId(null);
+        setIsInfoOpen(false);
+      }
+    } catch (err) {
+      console.error('Failed to block user:', err);
+    }
+  };
 
   // ─────────────────────────────────────────────────────────────
   if (error) {
@@ -424,13 +470,39 @@ export default function DashboardPage() {
       <main className={`${!activeId ? 'hidden md:flex' : 'flex w-full'} flex-col min-w-0 overflow-hidden flex-1`}>
         {activeConversation ? (
           <>
-            <ChatHeader
+              <ChatHeader
               conversation={activeConversation}
               me={me}
               isInfoOpen={isInfoOpen}
               onToggleInfo={() => setIsInfoOpen(v => !v)}
+              isSearchOpen={isSearchOpen}
+              onSearchToggle={() => {
+                setIsSearchOpen(v => !v);
+                if (isSearchOpen) setSearchQuery(''); // Clear on close
+              }}
               onBack={() => setActiveId(null)}
             />
+            {isSearchOpen && (
+              <div style={{ padding: '10px 16px', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}>
+                <input
+                  type="text"
+                  placeholder="Search in conversation..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border-focus)',
+                    background: 'var(--bg-overlay)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    fontSize: 14
+                  }}
+                />
+              </div>
+            )}
             <div
               style={{
                 flex: 1,
@@ -441,15 +513,32 @@ export default function DashboardPage() {
               }}
             >
               <MessageList
-                messages={activeMessages}
+                messages={displayMessages}
                 senderMap={senderMap}
                 me={me}
                 typingNames={typingNames}
               />
-              <MessageInput
-                onSend={handleSend}
-                onTyping={handleTyping}
-              />
+              {activeConversation.status === 'pending' ? (
+                <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderTop: '1px solid var(--border)', textAlign: 'center', zIndex: 10 }}>
+                  {activeConversation.initiatorId === me.id ? (
+                    <div style={{ color: 'var(--text-muted)', fontSize: 14, fontWeight: 500 }}>Waiting for user to accept...</div>
+                  ) : (
+                    <div>
+                      <div style={{ marginBottom: 16, fontWeight: 600, color: 'var(--text-primary)' }}>This user wants to chat with you</div>
+                      <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                        <button onClick={() => handleRequestAction(activeConversation.id, 'accept')} style={{ padding: '8px 20px', background: 'var(--accent)', color: 'white', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 600 }}>Accept</button>
+                        <button onClick={() => handleRequestAction(activeConversation.id, 'reject')} style={{ padding: '8px 20px', background: 'var(--bg-overlay)', color: 'var(--text-primary)', border: '1px solid var(--border-focus)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject</button>
+                        <button onClick={() => handleRequestAction(activeConversation.id, 'block')} style={{ padding: '8px 20px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 10, cursor: 'pointer', fontWeight: 600 }}>Reject & Block</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <MessageInput
+                  onSend={handleSend}
+                  onTyping={handleTyping}
+                />
+              )}
             </div>
           </>
         ) : (
@@ -464,6 +553,7 @@ export default function DashboardPage() {
           conversation={activeConversation}
           me={me}
           onClose={() => setIsInfoOpen(false)}
+          onBlock={handleBlockUser}
         />
       )}
 
@@ -471,7 +561,9 @@ export default function DashboardPage() {
       {isModalOpen && (
         <NewConversationModal
           allUsers={allUsers}
+          conversations={conversations}
           me={me}
+          onSelect={setActiveId}
           onClose={() => setIsModalOpen(false)}
           onCreate={handleCreateConversation}
         />

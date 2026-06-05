@@ -9,6 +9,7 @@ interface InfoPanelProps {
   conversation: Conversation;
   me: ChatUser;
   onClose: () => void;
+  onBlock?: (userId: string) => void;
 }
 
 const statusLabel: Record<ChatUser['status'], string> = {
@@ -22,7 +23,7 @@ const statusColor: Record<ChatUser['status'], string> = {
   offline: 'var(--offline)',
 };
 
-export function InfoPanel({ className = '', conversation, me, onClose }: InfoPanelProps) {
+export function InfoPanel({ className = '', conversation, me, onClose, onBlock }: InfoPanelProps) {
   const name = getConversationName(conversation, me.id);
   const isGroup = conversation.type === 'group';
   const members = conversation.participants;
@@ -200,15 +201,30 @@ export function InfoPanel({ className = '', conversation, me, onClose }: InfoPan
       <div style={{ padding: '16px', marginTop: 'auto', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <ActionButton icon="🔇" label={conversation.isMuted ? 'Unmute' : 'Mute notifications'} />
         {isGroup && <ActionButton icon="🚪" label="Leave group" danger />}
-        {!isGroup && <ActionButton icon="🚫" label="Block user" danger />}
+        {!isGroup && (
+          <ActionButton 
+            icon="🚫" 
+            label="Block user" 
+            danger 
+            onClick={() => {
+              const other = members.find(p => p.id !== me.id);
+              if (other && onBlock) {
+                if (confirm(`Are you sure you want to block ${other.displayName}?`)) {
+                  onBlock(other.id);
+                }
+              }
+            }} 
+          />
+        )}
       </div>
     </aside>
   );
 }
 
-function ActionButton({ icon, label, danger }: { icon: string; label: string; danger?: boolean }) {
+function ActionButton({ icon, label, danger, onClick }: { icon: string; label: string; danger?: boolean; onClick?: () => void }) {
   return (
     <button
+      onClick={onClick}
       style={{
         width: '100%',
         display: 'flex',

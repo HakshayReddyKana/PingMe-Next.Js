@@ -22,9 +22,12 @@ export function formatFullTimestamp(date: Date): string {
 
 export function formatDateDivider(date: Date): string {
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / 86_400_000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
+  if (isSameDay(now, date)) return 'Today';
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (isSameDay(yesterday, date)) return 'Yesterday';
+  
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 

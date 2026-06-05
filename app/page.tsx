@@ -87,7 +87,7 @@ function HomeContent() {
       setError('');
       alert('Registration successful! Please login.');
     } else {
-      router.push('/dashboard');
+      router.push('/home');
     }
   };
 

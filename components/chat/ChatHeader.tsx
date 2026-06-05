@@ -9,10 +9,12 @@ interface ChatHeaderProps {
   me: ChatUser;
   isInfoOpen: boolean;
   onToggleInfo: () => void;
+  isSearchOpen?: boolean;
+  onSearchToggle?: () => void;
   onBack?: () => void;
 }
 
-export function ChatHeader({ conversation, me, isInfoOpen, onToggleInfo, onBack }: ChatHeaderProps) {
+export function ChatHeader({ conversation, me, isInfoOpen, onToggleInfo, isSearchOpen, onSearchToggle, onBack }: ChatHeaderProps) {
   const name = getConversationName(conversation, me.id);
   const isGroup = conversation.type === 'group';
 
@@ -95,8 +97,12 @@ export function ChatHeader({ conversation, me, isInfoOpen, onToggleInfo, onBack 
 
       {/* Action buttons */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        {/* Search in conversation (placeholder) */}
-        <HeaderIconButton title="Search messages (coming soon)" onClick={() => {}}>
+        {/* Search in conversation */}
+        <HeaderIconButton 
+          title={isSearchOpen ? 'Close search' : 'Search messages'} 
+          onClick={onSearchToggle || (() => {})}
+          active={isSearchOpen}
+        >
           <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
             <circle cx={11} cy={11} r={8} />
             <line x1={21} y1={21} x2={16.65} y2={16.65} />

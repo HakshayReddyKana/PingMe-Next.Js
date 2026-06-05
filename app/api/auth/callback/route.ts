@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       console.error('Failed to decode JWT:', e);
     }
 
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/home', request.url));
   } catch (error) {
     console.error('OAuth callback error:', error);
     return NextResponse.redirect(new URL('/?error=callback_failed', request.url));

@@ -1,17 +1,19 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { ChatUser } from '@/types';
+import type { ChatUser, Conversation } from '@/types';
 import { UserAvatar } from './UserAvatar';
 
 interface NewConversationModalProps {
   allUsers: ChatUser[];
+  conversations: Conversation[];
   me: ChatUser;
+  onSelect: (id: string) => void;
   onClose: () => void;
   onCreate: (userIds: string[], groupName?: string) => void;
 }
 
-export function NewConversationModal({ allUsers, me, onClose, onCreate }: NewConversationModalProps) {
+export function NewConversationModal({ allUsers, conversations, me, onSelect, onClose, onCreate }: NewConversationModalProps) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
@@ -40,6 +42,20 @@ export function NewConversationModal({ allUsers, me, onClose, onCreate }: NewCon
 
   const handleCreate = () => {
     if (selected.length === 0) return;
+    
+    if (!isGroup) {
+      // Check if a direct conversation already exists with this user
+      const existing = conversations.find(c => 
+        c.type === 'direct' && 
+        c.participants.some(p => p.id === selected[0])
+      );
+      if (existing) {
+        onSelect(existing.id);
+        onClose();
+        return;
+      }
+    }
+    
     onCreate(selected, isGroup ? groupName || 'New Group' : undefined);
     onClose();
   };

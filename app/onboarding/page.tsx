@@ -54,7 +54,7 @@ export default function OnboardingPage() {
     }
 
     // Successfully created the user in the DB, head to dashboard
-    router.push('/dashboard');
+    router.push('/home');
   };
 
   return (

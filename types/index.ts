@@ -55,6 +55,8 @@ export interface Conversation {
   isPinned?: boolean;
   isMuted?: boolean;
   createdAt: Date;
+  status?: 'pending' | 'accepted' | 'rejected';
+  initiatorId?: string;
 }
 
 export interface TypingState {
