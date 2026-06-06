@@ -7,7 +7,6 @@ import { API_ENDPOINTS, fetchApi } from '@/lib/api';
 import { ws } from '@/lib/websocket';
 import {
   getMe,
-  getAllUsers,
   getConversations,
   getMessages,
   createConversation,
@@ -30,7 +29,6 @@ export default function DashboardPage() {
 
   // ── Auth & Global State ───────────────────────────────────────
   const [me, setMe] = useState<ChatUser | null>(null);
-  const [allUsers, setAllUsers] = useState<ChatUser[]>([]);
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,10 +52,17 @@ export default function DashboardPage() {
   // ── Sender lookup map ────────────────────────────────────────
   const senderMap: Record<string, ChatUser> = useMemo(() => {
     const map: Record<string, ChatUser> = {};
-    allUsers.forEach(u => { map[u.id] = u; });
     if (me) map[me.id] = me;
+    conversations.forEach(c => {
+      c.participants.forEach(p => {
+        if (!map[p.id]) map[p.id] = p;
+      });
+      c.pendingParticipants?.forEach(p => {
+        if (!map[p.id]) map[p.id] = p;
+      });
+    });
     return map;
-  }, [allUsers, me]);
+  }, [conversations, me]);
 
   // ── Load Initial Data ────────────────────────────────────────
   useEffect(() => {
@@ -71,16 +76,14 @@ export default function DashboardPage() {
           return;
         }
 
-        const [meData, usersData, convsData] = await Promise.all([
+        const [meData, convsData] = await Promise.all([
           getMe(),
-          getAllUsers(),
           getConversations(),
         ]);
 
         if (!mounted) return;
 
         setMe(meData);
-        setAllUsers(usersData);
         setConversations(convsData);
 
         // Connect to WebSocket server (non-blocking)
@@ -113,19 +116,25 @@ export default function DashboardPage() {
 
   // ── Presence Polling ─────────────────────────────────────────
   useEffect(() => {
-    if (!me || allUsers.length === 0) return;
+    if (!me || Object.keys(senderMap).length <= 1) return;
 
     const pollPresence = async () => {
       try {
-        const ids = allUsers.map(u => u.id);
+        const ids = Object.keys(senderMap).filter(id => id !== me.id);
         const presenceMap = await getPresence(ids);
         
-        setAllUsers(prev => prev.map(u => {
-          const newStatus = presenceMap[u.id];
-          if (newStatus && newStatus !== u.status) {
-            return { ...u, status: newStatus as any };
-          }
-          return u;
+        // Update presence directly on conversations array
+        setConversations(prev => prev.map(conv => {
+          let changed = false;
+          const newParticipants = conv.participants.map(p => {
+            const newStatus = presenceMap[p.id];
+            if (newStatus && newStatus !== p.status) {
+              changed = true;
+              return { ...p, status: newStatus as any };
+            }
+            return p;
+          });
+          return changed ? { ...conv, participants: newParticipants } : conv;
         }));
       } catch (err) {
         console.error('Failed to poll presence:', err);
@@ -136,7 +145,7 @@ export default function DashboardPage() {
     pollPresence();
     const interval = setInterval(pollPresence, 10000);
     return () => clearInterval(interval);
-  }, [me, allUsers.length]); // Re-bind if allUsers array length changes
+  }, [me, Object.keys(senderMap).join(',')]);
 
   // ── Global WebSocket Subscriptions ───────────────────────────
   const activeIdRef = useRef(activeId);
@@ -238,21 +247,6 @@ export default function DashboardPage() {
     };
   }, [me]);
 
-  // Sync presence to conversations so sidebar updates
-  useEffect(() => {
-    setConversations(prev => prev.map(conv => {
-      let changed = false;
-      const newParticipants = conv.participants.map(p => {
-        const globalUser = allUsers.find(u => u.id === p.id);
-        if (globalUser && globalUser.status !== p.status) {
-          changed = true;
-          return { ...p, status: globalUser.status };
-        }
-        return p;
-      });
-      return changed ? { ...conv, participants: newParticipants } : conv;
-    }));
-  }, [allUsers]);
 
   // ── Active Conversation History Load ─────────────────────────
   useEffect(() => {
@@ -642,7 +636,6 @@ export default function DashboardPage() {
       {/* New conversation modal */}
       {isModalOpen && (
         <NewConversationModal
-          allUsers={allUsers}
           conversations={conversations}
           me={me}
           onSelect={setActiveId}

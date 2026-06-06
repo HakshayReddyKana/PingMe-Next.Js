@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import type { ChatUser, Conversation } from '@/types';
 import { UserAvatar } from './UserAvatar';
+import { searchUsers } from '@/lib/chat-api';
 
 interface NewConversationModalProps {
-  allUsers: ChatUser[];
   conversations: Conversation[];
   me: ChatUser;
   onSelect: (id: string) => void;
@@ -13,30 +13,46 @@ interface NewConversationModalProps {
   onCreate: (userIds: string[], groupName?: string) => void;
 }
 
-export function NewConversationModal({ allUsers, conversations, me, onSelect, onClose, onCreate }: NewConversationModalProps) {
+export function NewConversationModal({ conversations, me, onSelect, onClose, onCreate }: NewConversationModalProps) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
+  const [results, setResults] = useState<ChatUser[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<ChatUser[]>([]);
 
-  const others = useMemo(() =>
-    allUsers.filter(u => u.id !== me.id),
-    [allUsers, me.id]
-  );
+  // Debounced search
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      setIsSearching(false);
+      return;
+    }
 
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    return others.filter(u => {
-      const d = u.displayName || u.username || '';
-      const n = u.username || '';
-      return d.toLowerCase().includes(q) || n.toLowerCase().includes(q);
-    });
-  }, [others, query]);
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const data = await searchUsers(query);
+        // Exclude ourselves from the search results
+        setResults(data.filter(u => u.id !== me.id));
+      } catch (err) {
+        console.error('Search failed', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [query, me.id]);
 
   const isGroup = selected.length > 1;
 
-  const toggleUser = (id: string) => {
+  const toggleUser = (user: ChatUser) => {
     setSelected(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      prev.includes(user.id) ? prev.filter(x => x !== user.id) : [...prev, user.id]
+    );
+    setSelectedUsers(prev => 
+      prev.find(u => u.id === user.id) ? prev.filter(x => x.id !== user.id) : [...prev, user]
     );
   };
 
@@ -151,12 +167,11 @@ export function NewConversationModal({ allUsers, conversations, me, onSelect, on
         {/* Selected chips */}
         {selected.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '12px 20px 0', flexShrink: 0, maxHeight: 110, overflowY: 'auto' }}>
-            {selected.map(id => {
-              const user = others.find(u => u.id === id)!;
+            {selectedUsers.map(user => {
               return (
                 <button
-                  key={id}
-                  onClick={() => toggleUser(id)}
+                  key={user.id}
+                  onClick={() => toggleUser(user)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -208,19 +223,26 @@ export function NewConversationModal({ allUsers, conversations, me, onSelect, on
           />
         </div>
 
-        {/* User list */}
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 12px 12px' }}>
-          {filtered.length === 0 ? (
+          {isSearching ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '32px 0' }}>
+              Searching...
+            </div>
+          ) : query.trim() === '' ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '32px 0' }}>
+              Type a name to search for users
+            </div>
+          ) : results.length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '32px 0' }}>
               No users found
             </div>
           ) : (
-            filtered.map(user => {
+            results.map(user => {
               const isSelected = selected.includes(user.id);
               return (
                 <button
                   key={user.id}
-                  onClick={() => toggleUser(user.id)}
+                  onClick={() => toggleUser(user)}
                   style={{
                     width: '100%',
                     display: 'flex',

@@ -15,10 +15,10 @@ export async function getMe(): Promise<ChatUser> {
   return data;
 }
 
-export async function getAllUsers(): Promise<ChatUser[]> {
-  const { data, error } = await fetchApi<ChatUser[]>('/api/users');
-  if (error || !data) throw new Error(error ?? 'Failed to load users');
-  return data;
+export async function searchUsers(query: string): Promise<ChatUser[]> {
+  const { data, error } = await fetchApi<ChatUser[]>(`/api/users/search?q=${encodeURIComponent(query)}`);
+  if (error) throw new Error(error);
+  return data || [];
 }
 
 export async function getPresence(userIds: string[]): Promise<Record<string, ChatUser['status']>> {
