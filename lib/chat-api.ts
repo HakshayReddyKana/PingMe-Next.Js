@@ -16,9 +16,14 @@ export async function getMe(): Promise<ChatUser> {
 }
 
 export async function searchUsers(query: string): Promise<ChatUser[]> {
-  const { data, error } = await fetchApi<ChatUser[]>(`/api/users/search?q=${encodeURIComponent(query)}`);
+  const { data, error } = await fetchApi<any>(`/api/users/search?q=${encodeURIComponent(query)}`);
   if (error) throw new Error(error);
-  return data || [];
+  
+  // Handle both List<User> and Page<User> backend responses
+  if (data && Array.isArray(data.content)) {
+    return data.content;
+  }
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getPresence(userIds: string[]): Promise<Record<string, ChatUser['status']>> {
