@@ -342,9 +342,11 @@ function HomeContent() {
             <span className="landing-logo-icon">💬</span>
             <span>PingMe</span>
           </div>
-          <div className="landing-nav-links">
-            <a href="#architecture">Architecture</a>
-            <a href="#features">Features</a>
+          <div className="landing-nav-right">
+            <div className="landing-nav-links">
+              <a href="#architecture">Architecture</a>
+              <a href="#features">Features</a>
+            </div>
             <button onClick={scrollToAuth} className="landing-nav-cta">Get Started</button>
           </div>
         </div>
@@ -652,6 +654,11 @@ function HomeContent() {
           color: var(--text-primary);
         }
         .landing-logo-icon { font-size: 1.5rem; }
+        .landing-nav-right {
+          display: flex;
+          align-items: center;
+          gap: 2rem;
+        }
         .landing-nav-links {
           display: flex;
           align-items: center;
@@ -676,6 +683,27 @@ function HomeContent() {
           transition: background 0.2s, transform 0.15s;
         }
         .landing-nav-cta:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+        @media (max-width: 768px) {
+          .landing-nav-links {
+            display: none;
+          }
+        }
+        @media (max-width: 640px) {
+          .landing-nav {
+            padding: 0.85rem 1.25rem;
+          }
+          .landing-nav-scrolled {
+            padding: 0.7rem 1.25rem;
+          }
+          .landing-logo {
+            font-size: 1.15rem;
+          }
+          .landing-nav-cta {
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+          }
+        }
 
         /* ── Hero ── */
         .landing-hero {
